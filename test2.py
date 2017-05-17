@@ -114,7 +114,8 @@ class Parser(object):
         finished = False
         # prase result
         value = None
-        while len(self.textStack) > 0 and not finished:
+        node = None
+        while len(self.textStack) > 0 and status[-1] != 'E':
             node = self.textStack[-1]
             # if finished:
             #     self.raiseError('parse error', node)
@@ -142,14 +143,18 @@ class Parser(object):
                     self.raiseError('invalid', node)
             elif status[-1] == 'S2':
                 if node[1] == ')':
-                    self.textStack.pop()
                     if len(status) > 2 and status[-2] == '(':
+                        self.textStack.pop()
                         status.pop()
-                        status[-1] = 'S3'
+                        status[-1] = 'E'
+                    else:
+                        self.raiseError('Parse error', node)
                 else:
-                    status[-1] = 'E'
-            elif status[-1] == 'S3':
-                status[-1] = 'E'
+                    if len(self.textStack) == 0:
+                        status[-1] = 'E'
+                    else:
+                        self.raiseError('Parse error', node)
+        status.pop()
         return value
 
     def parse(self):
