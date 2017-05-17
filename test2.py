@@ -116,6 +116,8 @@ class Parser(object):
         value = None
         while len(self.textStack) > 0 and not finished:
             node = self.textStack[-1]
+            # if finished:
+            #     self.raiseError('parse error', node)
             if status[-1] == 'E':
                 status.pop()
                 finished = True
@@ -143,9 +145,11 @@ class Parser(object):
                     self.textStack.pop()
                     if len(status) > 2 and status[-2] == '(':
                         status.pop()
-                        status[-1] = 'E'
+                        status[-1] = 'S3'
                 else:
                     status[-1] = 'E'
+            elif status[-1] == 'S3':
+                status[-1] = 'E'
         return value
 
     def parse(self):
