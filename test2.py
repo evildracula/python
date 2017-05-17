@@ -91,6 +91,9 @@ class Parser(object):
         self.parseStack = []
         self.reader = StringReader(text)
         self.convertToStack()
+        self.pair = {
+            ')':'('
+        }
 
     def convertToStack(self):
         self.reader.skipBlank()
@@ -109,6 +112,24 @@ class Parser(object):
     def raiseError(self, desc, node):
         raise Exception('%s at %s' % (desc, node[1]))
 
+    def parsePush(self, node, status, parseFunc, parseEndStatus):
+        self.textStack.pop()
+        status.append(node[1])
+        result = parseFunc(status)
+        status[-1] = parseEndStatus
+        return result
+
+    def parsePop(self, node, status, parseEndStatus):
+        previousChar = self.pair.get(node[1], None)
+        if not previousChar:
+            return
+        if len(status) > 2 and status[-2] == previousChar:
+            self.textStack.pop()
+            status.pop()
+            status[-1] = parseEndStatus
+        else:
+            self.raiseError('Parse error, mismatch %s' % node[1], node)
+
     def parseCondition(self, status):
         status.append('S')
         finished = False
@@ -117,44 +138,25 @@ class Parser(object):
         node = None
         while len(self.textStack) > 0 and status[-1] != 'E':
             node = self.textStack[-1]
-            # if finished:
-            #     self.raiseError('parse error', node)
-            if status[-1] == 'E':
-                status.pop()
-                finished = True
-            elif status[-1] == 'S':
+            if status[-1] == 'S':
                 if node[1] == '(':
-                    self.textStack.pop()
-                    status.append('(')
-                    value = self.parseCondition(status)
-                    status[-1] = 'S2'
+                    value = self.parsePush(node, status, self.parseCondition, 'S1')
                 elif node[0] == 'value':
-                    status[-1] = 'S2'
+                    status[-1] = 'S1'
                     value = node[1]
                     self.textStack.pop()
                 else:
                     self.raiseError('invalid', node)
             elif status[-1] == 'S1':
-                if node[0] == 'value':
-                    status[-1] = 'S2'
-                    value = node[1]
-                    self.textStack.pop()
-                else:
-                    self.raiseError('invalid', node)
-            elif status[-1] == 'S2':
                 if node[1] == ')':
-                    if len(status) > 2 and status[-2] == '(':
-                        self.textStack.pop()
-                        status.pop()
-                        status[-1] = 'E'
-                    else:
-                        self.raiseError('Parse error', node)
+                    self.parsePop(node, status, 'E')
                 else:
                     if len(self.textStack) == 0:
                         status[-1] = 'E'
                     else:
                         self.raiseError('Parse error', node)
         status.pop()
+        print 'Parse router: ', status
         return value
 
     def parse(self):
@@ -187,10 +189,17 @@ class Parser(object):
                 dict[l].append(opt)
             return
 
-# s = '(a:"a",(b:"b"|x:"x"))|(c:"c"|(d:"d",e:"e"))'
-# s = '(a="a",(b="b"|x=":"))|(c="c"|(d="d",e="e"))'
-# s = 'a="a",(b="b"|b="c")'
-s = 'aa'
+#  A -> value
+#  |     |
+#  S     S1
+#
+#   A -> ( A )
+#     (             )
+#    <---|  a   |--->
+#      S   --->  S1      E
+#
+#
+s = '((((a))))'
 p = Parser(s)
 print p.parse()
 print p.textStack

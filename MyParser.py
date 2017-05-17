@@ -91,6 +91,9 @@ class Parser(object):
         self.parseStack = []
         self.reader = StringReader(text)
         self.convertToStack()
+        self.pair = {
+            ')': '('
+        }
 
     def convertToStack(self):
         self.reader.skipBlank()
@@ -124,13 +127,31 @@ class Parser(object):
     def raiseError(self, desc, node):
         raise Exception('%s at %s' % (desc, node[1]))
 
+    def parsePush(self, node, status, parseFunc, parseEndStatus):
+        self.textStack.pop()
+        status.append(node[1])
+        result = parseFunc(status)
+        status[-1] = parseEndStatus
+        return result
+
+    def parsePop(self, node, status, parseEndStatus):
+        previousChar = self.pair.get(node[1], None)
+        if not previousChar:
+            return
+        if len(status) > 2 and status[-2] == previousChar:
+            self.textStack.pop()
+            status.pop()
+            status[-1] = parseEndStatus
+        else:
+            self.raiseError('Parse error, mismatch %s' % node[1], node)
+
     def parseConditionPair(self, status):
         operator = None
         fieldName = None
         value = None
         status.append('S')
         finished = False
-        while len(self.textStack) > 0 and not finished:
+        while len(self.textStack) > 0 and status[-1] != 'E':
             node = self.textStack[-1]
             if status[-1] == 'S':
                 if node[0] == 'name':
@@ -149,11 +170,12 @@ class Parser(object):
             elif status[-1] == 'S2':
                 if node[0] == 'value':
                     value = node[1]
-                    finished = True
+                    status[-1] = 'E'
                     self.textStack.pop()
-                    status.pop()
                 else:
                     self.raiseError('Parse error, should be value', node)
+        status.pop()
+        print 'Parse router: ', status
         return (operator, fieldName, value)
 
     def parseCondition(self, status):
@@ -162,65 +184,50 @@ class Parser(object):
         left_result = None
         right_result = None
         operator = None
-        while len(self.textStack) > 0 and not finished:
+        while len(self.textStack) > 0 and status[-1] != 'E':
             node = self.textStack[-1]
             if status[-1] == 'S':
                 if node[0] == 'condition' and node[1] == '(':
-                    self.textStack.pop()
-                    status.append('S1')
-                    left_result = self.parseCondition(status)
-                    status[-1] = 'S2'
+                    left_result = self.parsePush(node, status, self.parseCondition, 'S1')
                 elif node[0] == 'name':
                     left_result = self.parseConditionPair(status)
-                    status[-1] = 'S2'
+                    status[-1] = 'S1'
                 else:
                     self.raiseError('Parse error, should be nest condition or condition', node)
-            elif status[-1] == 'S2':
+            elif status[-1] == 'S1':
                 if node[0] == 'condition' and node[1] == '|':
-                    status[-1] = 'S3'
+                    status[-1] = 'S2'
                     print 'find or'
                     operator = 'or'
                     self.textStack.pop()
                 elif node[0] == 'condition' and node[1] == ',':
-                    status[-1] = 'S3'
+                    status[-1] = 'S2'
                     print 'find and'
                     operator = 'and'
                     self.textStack.pop()
                 elif node[0] == 'condition' and node[1] == ')':
-                    self.textStack.pop()
-                    status.pop()
-                    if status[-1] == 'S1':
-                        self.textStack.pop()
+                    self.parsePop(node, status, 'E')
                 else:
                     self.raiseError('Parse error, should be and or', node)
-            elif status[-1] == 'S3':
+            elif status[-1] == 'S2':
                 if node[0] == 'condition' and node[1] == '(':
-                    self.textStack.pop()
-                    status.append('S1')
-                    right_result = self.parseCondition(status)
-                    status[-1] = 'S4'
+                    right_result = self.parsePush(node, status, self.parseCondition, 'S3')
                 elif node[0] == 'name':
                     right_result = self.parseConditionPair(status)
-                    status[-1] = 'S4'
+                    status[-1] = 'S3'
                 else:
                     self.raiseError('Parse error, should be nest condition or condition', node)
-            elif status[-1] == 'S4':
+            elif status[-1] == 'S3':
                 if node[0] == 'condition' and node[1] == ')':
-                    if status[-2] == 'S1':
-                        status.pop()
-                        status.pop()
-                        self.textStack.pop()
-                        finished = True
-                    else:
-                        self.raiseError('Parse error, not allow', node)
+                    self.parsePop(node, status, 'E')
                 elif node[0] == 'condition':
                     if len(status) > 0:
-                        status[-1] = 'S2'
+                        status[-1] = 'S1'
                         left_result = (operator, left_result, right_result)
                 else:
                     self.raiseError('Parse error, not be any text here', node)
-        if status[-1] in ['S2', 'S4', 'S5']:
-            status.pop()
+        status.pop()
+        print 'Parse router: ', status
         if operator:
             return (operator, left_result, right_result)
         else:
@@ -256,14 +263,16 @@ class Parser(object):
                 dict[l].append(opt)
             return
 
-            # # s = '(a:"a",(b:"b"|x:"x"))|(c:"c"|(d:"d",e:"e"))'
-            # # s = '(a="a",(b="b"|x=":"))|(c="c"|(d="d",e="e"))'
-            # # s = 'a="a",(b="b"|b="c")'
-            # s = 'a="a",b="x"|a="y"'
-            # p = Parser(s)
-            # # print p.textStack
-            # result = p.parse()
-            # print p.loop(result)
-            # option = {}
-            # p.toDict(result, option)
-            # print option
+
+# s = '(a:"a",(b:"b"|x:"x"))|(c:"c"|(d:"d",e:"e"))'
+# s = '(a="a",(b="b"|x=":"))|(c="c"|(d="d",e="e"))'
+s = 'a="a"|b="b",b="c"'
+# s = 'a="a"'
+p = Parser(s)
+# print p.textStack
+result = p.parse()
+print result
+# print p.loop(result)
+# option = {}
+# p.toDict(result, option)
+# print option
