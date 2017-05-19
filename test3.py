@@ -90,6 +90,7 @@ class Parser(object):
         self.text = text
         self.textStack = []
         self.parseStack = []
+        self.priorityStack = []
         self.reader = StringReader(text)
         self.pair = {
             ')': '('
@@ -261,11 +262,14 @@ class Parser(object):
                 else:
                     self.raiseError('Parse error, should be nest condition or condition', node)
             elif status[-1] == 'S1':
+                right_result = None
                 if node[0] == 'condition' and node[1] == '|':
-                    status[-1] = 'S2'
+                    # status[-1] = 'S2'
+                    status[-1] = 'S'
                     print 'find or'
                     operator = 'or'
                     self.textStack.pop()
+                    self.priorityStack.append(('or', left_result))
                 elif node[0] == 'condition' and node[1] == ',':
                     status[-1] = 'S2'
                     print 'find and'
@@ -290,21 +294,32 @@ class Parser(object):
                     if len(status) > 0:
                         status[-1] = 'S1'
                         left_result = (operator, left_result, right_result)
+
                 else:
                     self.raiseError('Parse error, not be any text here', node)
         status.pop()
         print 'Parse router: ', status
-        if operator:
-            return ('andor',(operator, left_result, right_result))
+        if operator and right_result:
+            finalResult = ('andor', (operator, left_result, right_result))
+            # finalResult = (operator, left_result, right_result)
         else:
-            return left_result
+            finalResult = left_result
+        while len(self.priorityStack) > 0:
+            (left_operator, left_result_in_stack) = self.priorityStack.pop()
+            finalResult = (left_operator, left_result_in_stack, finalResult)
+        return finalResult
 
     def parse(self):
         status = []
         return self.parseCondition(status)
 
-    def loop(self, node):
-        n, l, r = node[0], node[1], node[2]
+    def loop(self, result):
+        (type, node) = result[0], result[1]
+        if type == 'andor':
+            return self.loop(node)
+        elif type == 'condition':
+            return self.loop(node)
+        n, l, r = result[0], result[1], result[2]
         if n == 'and' or n == 'or':
             left = self.loop(l)
             right = self.loop(r)
@@ -315,8 +330,9 @@ class Parser(object):
         else:
             return '%s %s %s' % (l, n, r)
 
-    def toDict(self, turpleResult, dict):
-        n, l, r = turpleResult[0], turpleResult[1], turpleResult[2]
+    def toDictback(self, result, dict):
+        (type, node) = result[0], result[1]
+        n, l, r = node[0], node[1], node[2]
         if n == 'and' or n == 'or':
             self.toDict(l, dict)
             self.toDict(r, dict)
@@ -329,14 +345,30 @@ class Parser(object):
                 dict[l].append(opt)
             return
 
+    def toDict(self, result):
+        (type, node) = result[0], result[1]
+        if type == 'andor':
+            dict = self.toDict(node)
+            return dict
+        elif type == 'condition':
+            dict = self.toDict(node)
+            return dict
+        n, l, r = result[0], result[1], result[2]
+        if n == 'and' or n == 'or':
+            left = self.toDict(l)
+            right = self.toDict(r)
+            return {'opt': n, 'left': left, 'right': right}
+        else:
+            return {'opt': n, 'field': l, 'value': r}
 
 
-s = '(a!="a"|b=""),c="c"'
+s = 'name#"a"'
+# s = 'c="c"'
 p = Parser(s)
-# print p.textStack
+print p.textStack
 result = p.parse()
 print result
-# print p.loop(result)
+print p.loop(result)
 # option = {}
-# p.toDict(result, option)
+print p.toDict(result)
 # print option
