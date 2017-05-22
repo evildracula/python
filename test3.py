@@ -1,5 +1,5 @@
 import re
-
+import yaml
 
 class StringReader(object):
     def __init__(self, text):
@@ -362,13 +362,24 @@ class Parser(object):
             return {'opt': n, 'field': l, 'value': r}
 
 
-s = 'name#"a"'
-# s = 'c="c"'
-p = Parser(s)
-print p.textStack
-result = p.parse()
-print result
-print p.loop(result)
-# option = {}
-print p.toDict(result)
-# print option
+# s = 'name#"a"'
+# # s = 'c="c"'
+# p = Parser(s)
+# print p.textStack
+# result = p.parse()
+# print result
+# print p.loop(result)
+# # option = {}
+# print p.toDict(result)
+# # print option
+
+
+# import sys
+# sys.path.insert(0, '/home/wahaha/coding/python')
+
+import yaml
+f = open('./test.yaml')
+x = yaml.load(f)
+
+print type(x)
+print x
