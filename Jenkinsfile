@@ -6,6 +6,7 @@ pipeline {
                 sh 'python --version'
                 sh 'pwd'
                 sh 'ls -l'
+                sh 'cat README.md'
             }
         }
     }
