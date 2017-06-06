@@ -33,7 +33,7 @@ pipeline {
       steps {
         parallel(
           "Deploy": {
-            sh 'echo \'Deploy\''
+            sh 'cat README.md'
             
           },
           "": {
