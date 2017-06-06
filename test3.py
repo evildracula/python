@@ -1,5 +1,7 @@
+# -*- coding: utf-8 -*-
 import re
 import yaml
+
 
 class StringReader(object):
     def __init__(self, text):
@@ -378,8 +380,320 @@ class Parser(object):
 # sys.path.insert(0, '/home/wahaha/coding/python')
 
 import yaml
+
 f = open('./test.yaml')
 x = yaml.load(f)
 
 print type(x)
 print x
+
+
+class User(object):
+    __djangoModel = None
+    firstName = None
+    lastName = None
+    loginName = None
+    email = None
+    phone = None
+    address = None
+    roles = None
+    orgs = None
+    memo = None
+
+    def __init__(self, djangoModel):
+        self.__djangoModel = djangoModel
+
+    # simple save in BP
+    # firstName
+    # lastName
+    # email
+    # phone
+    def set_loginName(self, value):
+        print('set_loginName called')
+
+    def get_loginName(self):
+        return ('', '')
+
+    def set_phone(self):
+        pass
+
+    def get_phone(self):
+        return ('', '')
+
+    def set_address(self):
+        pass
+
+    def get_address(self):
+        return ('', '')
+
+    def set_roles(self):
+        pass
+
+    def get_roles(self):
+        return ('', '')
+
+    def set_orgs(self):
+        pass
+
+    def get_orgs(self):
+        return ('', '')
+
+    def set_memo(self):
+        pass
+
+    def get_memo(self):
+        return ('', '')
+
+
+def SetFieldValue(businessEntity, fieldValue, **configuredData):
+    """
+    This method set value to a field, it will try set_xxx on Business Entity or call SetOrderValue method
+    :param businessEntity: Business Entity object
+    :param fieldValue: value to set
+    :param configuredData: field configurations
+    :return: None
+    """
+    # If required, check whether field value is blank
+    # required = configuredData.get('required', False)
+    # if required and (fieldValue is None or fieldValue.strip() == ''):
+    #     raise Exception(u"不可为空")
+    # # Call set method
+    callName = 'set_%s' % configuredData['fieldKey']
+    if hasattr(businessEntity, callName):
+        # print "call be.%s(fieldValue)" % callName
+        exec ("businessEntity.%s(fieldValue)" % callName)
+    else:
+        # No set method provided
+        # Save by framework according to the configuration
+        SetEntityValue(businessEntity, fieldValue, **configuredData)
+
+
+# Set the entity value based on configuration data
+def SetEntityValue(entity, value, **confData):
+    print('set entity value')
+    return
+    """
+    This method set field value into Django Order model based on field configuration
+    :param orderModel: Order model object
+    :param confField: StdViewLayoutConf object
+    :param value: value that need to be saved
+    :return: won't return any value
+    """
+    storeColumn = confData.get('storeColumn', None)
+    fieldKey = confData.get('fieldKey', None)
+    storeType = confData.get('storeType', None)
+    storeKey = confData.get('storeKey', None)
+    required = confData.get('required', False)
+    fieldColumn = bool(storeColumn) and storeColumn or fieldKey
+    # Check value type
+    if confData['valueType'] == 'Number':
+        try:
+            int(value)
+            float(value)
+        except Exception, e:
+            raise Exception(u"非数字类型")
+    elif confData['valueType'] == 'Boolean':
+        try:
+            bool(value)
+        except Exception, e:
+            raise Exception(u"非布尔类型")
+    else:
+        pass
+    if hasattr(entity, 'orderModel'):
+        orderModel = entity.orderModel
+        if storeType == 'PF' and storeKey:
+            if value:
+                OrderPFNew_or_update(orderModel, storeKey, BP.objects.get(id=value))
+            else:
+                OrderPFDelete(orderModel, storeKey, None)
+        elif storeType == 'Customized':
+            if not hasattr(orderModel, 'ordercustomized'):
+                # If no OrderCustomized record, create one
+                orderModel.ordercustomized = OrderCustomized()
+                orderModel.ordercustomized.save()
+                orderModel.save()
+            if hasattr(orderModel.ordercustomized, fieldColumn):
+                if confData['fieldType'] == 'IF':
+                    if value:
+                        if int(value) > 0:
+                            uploadFilesTemp = UploadFilesTemp.objects.get(id=value)
+                            exec (
+                                "orderModel.ordercustomized.%s.save(uploadFilesTemp.imageFile._get_path().split('/')[-1],uploadFilesTemp.imageFile)" % (
+                                    fieldColumn,))
+                            filepath = uploadFilesTemp.imageFile.path
+                            uploadFilesTemp.delete();
+                            os.remove(filepath)
+                        else:
+                            exec ("orderModel.ordercustomized.%s=None" % (fieldColumn,))
+                elif confData['fieldType'] == 'FI':
+                    if value:
+                        if int(value) > 0:
+                            uploadFilesTemp = UploadFilesTemp.objects.get(id=value)
+                            exec (
+                                "orderModel.ordercustomized.%s.save(uploadFilesTemp.normalFile._get_path().split('/')[-1],uploadFilesTemp.normalFile)" % (
+                                    fieldColumn,))
+                            filepath = uploadFilesTemp.normalFile.path
+                            uploadFilesTemp.delete();
+                            os.remove(filepath)
+                        else:
+                            exec ("orderModel.ordercustomized.%s=None" % (fieldColumn,))
+                else:
+                    if value is None:
+                        exec ("orderModel.ordercustomized.%s=None" % fieldColumn)
+                    else:
+                        if confData['valueType'] in ['Number', 'Boolean']:
+                            # Number type
+                            exec ("orderModel.ordercustomized.%s=%s" % (fieldColumn, value))
+                        else:
+                            # String type
+                            exec ("orderModel.ordercustomized.%s='%s'" % (fieldColumn, value))
+                orderModel.ordercustomized.save()
+            else:
+                raise Exception(u"%s not found on ordercustomized" % fieldColumn)
+        elif storeType == 'MultipleValue':
+            # Value is a json object
+            jsonValue = json.loads(value)
+            # Remove records whose id not in current jsonValue
+            ids = []
+            newToCreate = []
+            for value in jsonValue:
+                if str(value['id']).startswith('new'):
+                    newToCreate.append(value)
+                else:
+                    ids.append(value['id'])
+            if ids:
+                for order in orderModel.ordermultiplevaluefield_set.filter(~Q(id__in=ids),
+                                                                           Q(field__fieldKey=confData['fieldKey'])):
+                    order.delete()
+            if not jsonValue:
+                for order in orderModel.ordermultiplevaluefield_set.filter(Q(field__fieldKey=confData['fieldKey'])):
+                    order.delete()
+            # Add new record if any
+            for value in newToCreate:
+                omvf = OrderMultipleValueField()
+                omvf.order = orderModel
+                omvf.field = orderModel.type.orderfielddef_set.filter(fieldKey=confData['fieldKey'])[0]
+                omvf.charValue1 = value.get('charValue1', None)
+                omvf.charValue2 = value.get('charValue2', None)
+                orderModel.ordermultiplevaluefield_set.add(omvf)
+                orderModel.save()
+        elif storeType == 'Activity':
+            if not hasattr(orderModel, 'activity'):
+                # If no OrderCustomized record, create one
+                # orderModel.activity = Activity()
+                activity = Activity()
+                activity.order = orderModel
+                activity.save()
+                orderModel.activity = activity
+                orderModel.save()
+            orderModel.activity.order = orderModel
+            orderModel.activity.save()
+            if hasattr(orderModel.activity, fieldColumn):
+                if value is None:
+                    exec ("orderModel.activity.%s=None" % fieldColumn)
+                else:
+                    if confData['valueType'] in ['Number', 'Boolean']:
+                        # Number type
+                        exec ("orderModel.activity.%s=%s" % (fieldColumn, value))
+                    else:
+                        # String type
+                        exec ("orderModel.activity.%s='%s'" % (fieldColumn, value))
+                orderModel.activity.save()
+            else:
+                raise Exception(u"%s not found on ordercustomized" % fieldColumn)
+        elif storeType == 'Text' and storeKey:
+            if value:
+                newText = OrderText()
+                newText.order = orderModel
+                newText.type = TextType.objects.get(pk=storeKey)
+                newText.content = value
+                newText.createdBy = orderModel.updatedBy
+                newText.save()
+        else:
+            # Check field on Order model
+            if hasattr(orderModel, fieldColumn):
+                if value is None:
+                    exec ("orderModel.%s=None" % fieldColumn)
+                else:
+                    if confData['valueType'] in ['Number', 'Boolean']:
+                        exec ("orderModel.%s=%s" % (fieldColumn, value))
+                    else:
+                        exec ("orderModel.%s='%s'" % (fieldColumn, value))
+                orderModel.save()
+            else:
+                raise Exception(u'order上未找到字段%s' % fieldColumn)
+    elif hasattr(entity, 'bpModel'):
+        bpModel = entity.bpModel
+        if storeType == 'Customized':
+            if not hasattr(bpModel, 'bpcustomized'):
+                # If no BPCustomized record, create one
+                bpModel.bpcustomized = BPCustomized()
+                bpModel.bpcustomized.save()
+                bpModel.save()
+            else:
+                if bpModel.bpcustomized.id is None:
+                    bpModel.bpcustomized.bp = bpModel
+                    bpModel.bpcustomized.save()
+                    bpModel.save()
+            if hasattr(bpModel.bpcustomized, fieldColumn):
+                if confData['fieldType'] == 'IF':
+                    if value:
+                        if int(value) > 0:
+                            uploadFilesTemp = UploadFilesTemp.objects.get(id=value)
+                            exec (
+                                "bpModel.bpcustomized.%s.save(uploadFilesTemp.imageFile._get_path().split('/')[-1],uploadFilesTemp.imageFile)" % (
+                                    fieldColumn,))
+                            filepath = uploadFilesTemp.imageFile.path
+                            uploadFilesTemp.delete();
+                            os.remove(filepath)
+                        else:
+                            exec ("bpModel.bpcustomized.%s=None" % (fieldColumn,))
+                elif confData['fieldType'] == 'FI':
+                    if value:
+                        if int(value) > 0:
+                            uploadFilesTemp = UploadFilesTemp.objects.get(id=value)
+                            exec (
+                                "bpModel.bpcustomized.%s.save(uploadFilesTemp.normalFile._get_path().split('/')[-1],uploadFilesTemp.normalFile)" % (
+                                    fieldColumn,))
+                            filepath = uploadFilesTemp.normalFile.path
+                            uploadFilesTemp.delete();
+                            os.remove(filepath)
+                        else:
+                            exec ("bpModel.bpcustomized.%s=None" % (fieldColumn,))
+                else:
+                    if value is None:
+                        exec ("bpModel.bpcustomized.%s=None" % fieldColumn)
+                    else:
+                        if confData['valueType'] in ['Number', 'Boolean']:
+                            # Number type
+                            exec ("bpModel.ordercustomized.%s=%s" % (fieldColumn, value))
+                        else:
+                            # String type
+                            exec ("bpModel.ordercustomized.%s='%s'" % (fieldColumn, value))
+                bpModel.bpcustomized.save()
+            else:
+                raise Exception(u"%s not found on bpcustomized" % fieldColumn)
+        elif storeType == 'Text' and storeKey:
+            newText = BPText()
+            newText.bp = bpModel
+            newText.type = BPTextType.objects.get(pk=storeKey)
+            newText.content = value
+            newText.createdBy = bpModel.updatedBy
+            newText.save()
+        else:
+            # Check field on BP model
+            if hasattr(bpModel, fieldColumn):
+                if value is None:
+                    exec ("bpModel.%s=None" % fieldColumn)
+                else:
+                    if confData['valueType'] in ['Number', 'Boolean']:
+                        exec ("bpModel.%s=%s" % (fieldColumn, value))
+                    else:
+                        exec ("bpModel.%s='%s'" % (fieldColumn, value))
+                bpModel.save()
+            else:
+                raise Exception(u'bp上未找到字段%s' % fieldColumn)
+
+
+user = User(object)
+SetFieldValue(user, 'fn', **{'fieldKey':'loginName'})
