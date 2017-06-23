@@ -1,8 +1,16 @@
 import websocket
 
 
+def handle(message):
+    if message == 'moto':
+        print('moto called')
+    elif message == 'watre':
+        print('water')
+
+
 def on_message(ws, message):
     print('message: %s' % message)
+    handle(message)
 
 
 def on_error(ws, error):
@@ -15,6 +23,7 @@ def on_close(ws):
 
 def on_open(ws):
     print('opened')
+    ws.send(b'script')
 
 
 websocket.enableTrace(True)
