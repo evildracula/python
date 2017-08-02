@@ -1,0 +1,78 @@
+sets:
+  users: user
+  menus: menu
+  activities: activity
+  roles: role
+  orgs: org
+association:
+  userroles:
+  - user
+  - role
+user:
+  key:
+  - name: id
+    type: int
+  property:
+  - name: firstName
+    type: string
+  - name: lastName
+    type: string
+  - name: loginName
+    type: string
+    nullable: true
+  - name: email
+    type: string
+    nullable: true
+  - name: phone
+    type: string
+    nullable: true
+  - name: address
+    type: string
+    nullable: true
+  - name: status
+    type: string
+
+menu:
+  key:
+  - name: id
+    type: int
+  property:
+  - name: text
+    type: string
+
+
+activity:
+  key:
+  - name: id
+    type: int
+  property:
+  - name: title
+    type: string
+  - name: start
+    type: datetime
+    nullable: true
+  - name: end
+    type: datetime
+    nullable: true
+  - name: completion
+    type: string
+    nullable: true
+
+
+role:
+  key:
+  - name: key
+    type: string
+  property:
+  - name: description
+    type: string
+  - name: valid
+    type: string
+
+org:
+  key:
+  - name: id
+    type: int
+  property:
+  - name: name
+    type: string

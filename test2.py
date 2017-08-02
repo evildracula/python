@@ -1,5 +1,6 @@
 import re
 
+
 class StringReader(object):
     def __init__(self, text):
         self.text = text
@@ -90,23 +91,52 @@ class Parser(object):
         self.textStack = []
         self.parseStack = []
         self.reader = StringReader(text)
-        self.convertToStack()
+
         self.pair = {
-            ')':'('
+            ')': '('
         }
+        self.syntax_definition = {
+            'condition': ['[()\|,]'],
+            'operator': ['=']
+        }
+        self.string_definition = {
+            'string': ["""["']"""]
+        }
+        self.variable_definiation = {
+            'variable': ["""[A-Za-z0-9_]"""]
+        }
+        self.convertToStack()
+
+    def checkDefinition(self, table, char):
+        # result = None
+        for k, v in table.items():
+            for p in v:
+                if re.compile(p).match(char):
+                    return (k, p)
+        return (None, None)
 
     def convertToStack(self):
         self.reader.skipBlank()
         while not self.reader.isEnd():
             if self.reader.peekNext() == ' ':
                 self.reader.skipBlank()
-            elif self.reader.peekNext() == '(' or self.reader.peekNext() == ')':
-                word = self.reader.readNext()
-                self.textStack.insert(0, ('condition', word))
-            elif self.reader.peekNext() == 'a':
-                word = self.reader.readNext()
-                self.textStack.insert(0, ('value', word))
             else:
+                char = self.reader.peekNext()
+                (syntaxDef, pattern) = self.checkDefinition(self.syntax_definition, char)
+                if syntaxDef:
+                    self.reader.readNext()
+                    self.textStack.insert(0, (syntaxDef, char))
+                    continue
+                (stringDef, pattern) = self.checkDefinition(self.string_definition, char)
+                if stringDef:
+                    word = self.reader.readStringVariable()
+                    self.textStack.insert(0, (stringDef, word))
+                    continue
+                (varDef, pattern) = self.checkDefinition(self.variable_definiation, char)
+                if varDef:
+                    word = self.reader.readStringPatternWord(pattern)
+                    self.textStack.insert(0, (stringDef, word))
+                    continue
                 self.raiseError('Scan error, char not allow', (None, self.reader.currentPosition))
 
     def raiseError(self, desc, node):
@@ -135,15 +165,18 @@ class Parser(object):
         finished = False
         # prase result
         value = None
+        type = None
         node = None
         while len(self.textStack) > 0 and status[-1] != 'E':
             node = self.textStack[-1]
             if status[-1] == 'S':
                 if node[1] == '(':
-                    value = self.parsePush(node, status, self.parseCondition, 'S1')
+                    (type, value) = self.parsePush(node, status, self.parseCondition, 'S1')
+                    type = 'value2'
                 elif node[0] == 'value':
                     status[-1] = 'S1'
                     value = node[1]
+                    type = 'value'
                     self.textStack.pop()
                 else:
                     self.raiseError('invalid', node)
@@ -157,7 +190,7 @@ class Parser(object):
                         self.raiseError('Parse error', node)
         status.pop()
         print 'Parse router: ', status
-        return value
+        return (type, value)
 
     def parse(self):
         status = []
@@ -189,7 +222,8 @@ class Parser(object):
                 dict[l].append(opt)
             return
 
-#  A -> value
+
+# A ->  a
 #  |     |
 #  S     S1
 #
@@ -199,8 +233,8 @@ class Parser(object):
 #      S   --->  S1      E
 #
 #
-s = '((((a))))'
+s = 'abc="123"'
 p = Parser(s)
-print p.parse()
+# type, value = p.parse()
+# print "%s, %s" % (type, value)
 print p.textStack
-

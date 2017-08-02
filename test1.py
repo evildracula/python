@@ -158,11 +158,15 @@ def mul(matrix_a, matrix_b):
     #     for j in range(len(result)):
     #         result[i][j] =
 
-import numpy as np
-import math
-a = np.matrix([[1,2,3,4]])
-b = np.matrix([[1,1],[2,2],[3,3],[4,4]])
-c = np.math.tanh(a * b)
-print c
+# import numpy as np
+# import math
+# a = np.matrix([[1,2,3,4]])
+# b = np.matrix([[1,1],[2,2],[3,3],[4,4]])
+# c = np.math.tanh(a * b)
+# print c
+#
 
+def test(x, func):
+    return func(x)
 
+print test(10, lambda x : 'a')

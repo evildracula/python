@@ -4,260 +4,80 @@ import hashlib
 import random
 import string
 import urllib.request
+import urllib.parse
 import json
+import hashlib
+import ssl
+import base64
+from PIL import Image
 
-# class StringReader(object):
-#     def __init__(self, text):
-#         self.text = text
-#         self.maxlength = len(text)
-#         self.currentPosition = 0
-#
-#     def isOverLength(self, length):
-#         return length >= self.maxlength or length < 0
-#
-#     def isCurrentPositionValid(self):
-#         return self.isPositionValid(self.currentPosition)
-#
-#     def isPositionValid(self, p):
-#         return p >= 0 and p < self.maxlength
-#
-#     def peek(self, length):
-#         if not self.isCurrentPositionValid():
-#             return None
-#         m = self.currentPosition
-#         n = m + length
-#         if self.isOverLength(n):
-#             return self.text[m:]
-#         else:
-#             return self.text[m:n]
-#
-#     def peekNext(self):
-#         return self.peek(1)
-#
-#     def read(self, length):
-#         if not self.isCurrentPositionValid():
-#             return None
-#         m = self.currentPosition
-#         n = m + length
-#         if self.isOverLength(n):
-#             self.currentPosition = -1
-#             return self.text[m:]
-#         else:
-#             self.currentPosition += length
-#             return self.text[m:n]
-#
-#     def readNext(self):
-#         return self.read(1)
-#
-#     def skipBlank(self):
-#         if not self.isCurrentPositionValid():
-#             return
-#         while self.peekNext() == ' ':
-#             self.readNext()
-#
-#     def readStringPatternWord(self, pattern):
-#         if not self.isCurrentPositionValid():
-#             return None
-#         l = self.peekNext()
-#         if not l:
-#             return None
-#         result = ''
-#         while l and re.compile(pattern).match(l):
-#             result += self.readNext()
-#             l = self.peekNext()
-#         return result
-#
-#     def readStringVariable(self):
-#         if not self.isCurrentPositionValid():
-#             return None
-#         m = self.currentPosition
-#         text = self.text[m:]
-#         v = self.text[m]
-#         if v == '"' or v == "'":
-#             try:
-#                 idx = text.index(v, 1)
-#                 n = idx + 1
-#                 self.currentPosition += n
-#                 if not self.isCurrentPositionValid():
-#                     self.currentPosition = -1
-#                 return text[:n]
-#             except ValueError, e:
-#                 return None
-#         else:
-#             return None
-#
-#     def isEnd(self):
-#         return self.currentPosition == -1
-#
-#
-# class Parser(object):
-#     def __init__(self, text):
-#         self.text = text
-#         self.textStack = []
-#         self.parseStack = []
-#         self.reader = StringReader(text)
-#         self.convertToStack()
-#
-#     def convertToStack(self):
-#         self.reader.skipBlank()
-#         while not self.reader.isEnd():
-#             if self.reader.peekNext() == ' ':
-#                 self.reader.skipBlank()
-#             elif self.reader.peekNext() == '"' or self.reader.peekNext() == '"':
-#                 word = self.reader.readStringVariable()
-#                 if word:
-#                     self.textStack.insert(0, ('value', word))
-#                 else:
-#                     word = self.reader.readStringPatternWord("""[\w"']""")
-#                     self.textStack.insert(0, ('name', word))
-#             elif self.reader.peek(2) == '!=' or self.reader.peek(2) == '>=' or self.reader.peek(
-#                     2) == '<=' or self.reader.peek(2) == '!#':
-#                 word = self.reader.read(2)
-#                 self.textStack.insert(0, ('operator', word))
-#             elif self.reader.peekNext() == '(' or self.reader.peekNext() == ')' or self.reader.peekNext() == ',' or self.reader.peekNext() == '|':
-#                 word = self.reader.readNext()
-#                 self.textStack.insert(0, ('condition', word))
-#             elif self.reader.peekNext() == '@' or self.reader.peekNext() == '!' or self.reader.peekNext() == '@' or self.reader.peekNext() == '=':
-#                 word = self.reader.readNext()
-#                 self.textStack.insert(0, ('operator', word))
-#             else:
-#                 word = self.reader.readStringPatternWord('\w')
-#                 if word:
-#                     self.textStack.insert(0, ('name', word))
-#                 else:
-#                     self.raiseError('Scan error', (None, self.reader.currentPosition))
-#
-#     def raiseError(self, desc, node):
-#         raise Exception('%s at %s' % (desc, node[1]))
-#
-#     def parseConditionPair(self, status):
-#         operator = None
-#         fieldName = None
-#         value = None
-#         status.append('S')
-#         finished = False
-#         while len(self.textStack) > 0 and not finished:
-#             node = self.textStack[-1]
-#             if status[-1] == 'S':
-#                 if node[0] == 'name':
-#                     status[-1] = 'S1'
-#                     fieldName = node[1]
-#                     self.textStack.pop()
-#                 else:
-#                     self.raiseError('Parse error, should be name', node)
-#             elif status[-1] == 'S1':
-#                 if node[0] == 'operator':
-#                     status[-1] = 'S2'
-#                     operator = node[1]
-#                     self.textStack.pop()
-#                 else:
-#                     self.raiseError('Parse error, should be operator', node)
-#             elif status[-1] == 'S2':
-#                 if node[0] == 'value':
-#                     value = node[1]
-#                     finished = True
-#                     self.textStack.pop()
-#                     status.pop()
-#                 else:
-#                     self.raiseError('Parse error, should be value', node)
-#         return (operator, fieldName, value)
-#
-#     def parseCondition(self, status):
-#         status.append('S')
-#         finished = False
-#         left_result = None
-#         right_result = None
-#         operator = None
-#         while len(self.textStack) > 0 and not finished:
-#             node = self.textStack[-1]
-#             if status[-1] == 'S':
-#                 if node[0] == 'condition' and node[1] == '(':
-#                     self.textStack.pop()
-#                     status.append('S1')
-#                     left_result = self.parseCondition(status)
-#                     status[-1] = 'S2'
-#                 elif node[0] == 'name':
-#                     left_result = self.parseConditionPair(status)
-#                     status[-1] = 'S2'
-#                 else:
-#                     self.raiseError('Parse error, should be nest condition or condition', node)
-#             elif status[-1] == 'S2':
-#                 if node[0] == 'condition' and node[1] == '|':
-#                     status[-1] = 'S3'
-#                     print 'find or'
-#                     operator = 'or'
-#                     self.textStack.pop()
-#                 elif node[0] == 'condition' and node[1] == ',':
-#                     status[-1] = 'S3'
-#                     print 'find and'
-#                     operator = 'and'
-#                     self.textStack.pop()
-#                 elif node[0] == 'condition' and node[1] == ')':
-#                     self.textStack.pop()
-#                     status.pop()
-#                     if status[-1] == 'S1':
-#                         self.textStack.pop()
-#                 else:
-#                     self.raiseError('Parse error, should be and or', node)
-#             elif status[-1] == 'S3':
-#                 if node[0] == 'condition' and node[1] == '(':
-#                     self.textStack.pop()
-#                     status.append('S1')
-#                     right_result = self.parseCondition(status)
-#                     status[-1] = 'S4'
-#                 elif node[0] == 'name':
-#                     right_result = self.parseConditionPair(status)
-#                     status[-1] = 'S4'
-#                 else:
-#                     self.raiseError('Parse error, should be nest condition or condition', node)
-#             elif status[-1] == 'S4':
-#                 if node[0] == 'condition' and node[1] == ')':
-#                     if status[-2] == 'S1':
-#                         status.pop()
-#                         status.pop()
-#                         self.textStack.pop()
-#                         finished = True
-#                     else:
-#                         self.raiseError('Parse error, not allow', node)
-#                 elif node[0] == 'condition':
-#                     if len(status) > 0:
-#                         status[-1] = 'S2'
-#                         left_result = (operator, left_result, right_result)
-#                 else:
-#                     self.raiseError('Parse error, not be any text here', node)
-#         if status[-1] in ['S2', 'S4', 'S5']:
-#             status.pop()
-#         if operator:
-#             return (operator, left_result, right_result)
-#         else:
-#             return left_result
-#
-#     def parse(self):
-#         print "stack: <<<%s>>>" % self.textStack
-#         result = None
-#         finished = False
-#         status = []
-#         result = self.parseCondition(status)
-#         print status
-#         print result
-#         return result
-#
+def sendRequest2(url, headers, body):
+    req = urllib.request.Request(url)
+    req.set_proxy('proxy.sin.sap.corp:8080', 'http')
+    for k, v in headers.items():
+        req.add_header(k, v)
+    response = urllib.request.urlopen(req)
+    print(response.read())
+    return (response.code, '', response.read())
 
-# # s = '(a:"a",(b:"b"|x:"x"))|(c:"c"|(d:"d",e:"e"))'
-# s = '(a="a",(b="b"|x=":"))|(c="c"|(d="d",e="e"))'
-# p = Parser(s)
-# # print p.textStack
-# p.parse()
 
-# p = re.compile(u'[\u4e00-\u9fa5]+')
-# c=u'test '
-# match = p.search(c)
-# if match:
-#     print 'chines'
-# else:
-#     print 'no chinese'
-#
-# p.match(c)
+def sendRequest(url, headers, body):
+    ssl._create_default_https_context = ssl._create_unverified_context
+    req = urllib.request.Request(url)
+    req.set_proxy('proxy.sin.sap.corp:8080', 'http')
+    for k, v in headers.items():
+        req.add_header(k, v)
+    opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor)
+    try:
+        response = opener.open(req, body)
+        return (response.code, '', response.read())
+    except urllib.request.HTTPError as e:
+        return (e.code, e.reason, e.read())
+    except urllib.request.URLError as e:
+        return (None, e.reason, None)
+
+
+def getWXToken(appId, secret):
+    url = "https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid=%s&secret=%s"
+    url = url % (appId, secret)
+    headers = {}
+    headers['Content-Type'] = 'application/json'
+    body = b""
+    (code, reason, result) = sendRequest(url, headers, body)
+    return json.loads(result.decode('utf-8'))
+
+
+def getWXJSAPITicket(accessToken):
+    url = "https://api.weixin.qq.com/cgi-bin/ticket/getticket?access_token=%s&type=jsapi"
+    url = url % accessToken
+    headers = {}
+    headers['Content-Type'] = 'application/json'
+    body = b""
+    (code, reason, result) = sendRequest(url, headers, body)
+    return json.loads(result.decode('utf-8'))
+
+
+# access_token = getWXToken('wx9f248acc2b1a683b','e26c5dac6f18a94a11cb1bd72ec5b897')['access_token']
+# print(access_token)
+# jsapiticket = getWXJSAPITicket(access_token)
+# print(jsapiticket)
+
+def getSign(noncestr, ticket, timestamp, url):
+    parameters = {
+        'jsapi_ticket': ticket,
+        'noncestr': noncestr,
+        'timestamp': timestamp,
+        'url': url
+    }
+    sortedParameters = [(k, parameters[k]) for k in sorted(parameters.keys())]
+    parameterString = urllib.parse.urlencode(sortedParameters, safe=':/?=')
+    print(parameterString)
+    result = hashlib.sha1(parameterString.encode('utf-8'))
+    print(result.hexdigest())
+    return result.hexdigest()
+
+
+
 
 chars = ["a", "b", "c", "d", "e", "f", "g", "h",
          "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t",
@@ -284,21 +104,6 @@ def hand(seg):
     return char
 
 
-# ss = "libotao" + s
-# result = hashlib.md5(ss.encode('utf-8'))
-# print result.hexdigest()
-# r = result.hexdigest()
-#
-#
-# for x in [r[x * 8:x * 8 + 8] for x in range(4)]:
-#     print hand(x)
-
-# s = ' abd surl(abd)   surl(xyt) adsf'
-# def replace(match):
-#     return '<a href="www.xuxiaoye.com/surl?surl=%(url)s" target="_blank">%(url)s</a>' % { 'url': match.group(1)}
-#
-# print(re.sub(r'surl\(([a-zA-Z]*)\)', replace, s))
-
 def sendRequest(url, headers, body):
     # ssl._create_default_https_context = ssl._create_unverified_context
     req = urllib.request.Request(url)
@@ -314,13 +119,16 @@ def sendRequest(url, headers, body):
         return (None, e.reason, None)
 
 
+
 def getIpInfo(ip):
     url = "http://ip.taobao.com/service/getIpInfo.php?ip=%s" % ip
     headers = {}
     headers['Content-Type'] = 'application/json'
+    print(url)
     body = b""
     (code, reason, result) = sendRequest(url, headers, body)
     return json.loads(result.decode('utf-8'))
+
 
 def getIpLocation(ip):
     result = getIpInfo(ip)
@@ -337,3 +145,93 @@ def getIpLocation(ip):
         return 'N/A'
 
 print(getIpLocation('114.61.230.73'))
+
+
+
+def getBaiduAPIToken(apiKey, secretKey):
+    url = "https://aip.baidubce.com/oauth/2.0/token?grant_type=client_credentials&client_id=%(clientId)s&client_secret=%(clientSecret)s" % {
+        'clientId': apiKey,
+        'clientSecret': secretKey
+    }
+    print(url)
+    headers = {}
+    # headers['Content-Type'] = 'application/json'
+    body = b""
+    (code, reason, result) = sendRequest(url, headers, body)
+    print(code)
+    print(reason)
+    print(result)
+    return result
+
+def postAIPDectect(imgData, accessToken):
+    url = "https://aip.baidubce.com/rest/2.0/face/v1/detect?access_token=%(accessToken)s" % {
+        'accessToken': accessToken
+    }
+    print(url)
+    headers = {}
+    headers['Content-Type'] = 'application/x-www-form-urlencoded'
+    body = b"image=%s" % imgData
+    print(body)
+    (code, reason, result) = sendRequest(url, headers, body)
+    print(code)
+    print(reason)
+    print(result)
+    return result
+
+baiduApiKey = 'MtxmcKOG44KGoxngiFHneaTz'
+baiduSecretKey = '9vk2KnoLOchxqVOavFsgOqtY8G2OGaGZ'
+
+# result = getBaiduAPIToken(baiduApiKey, baiduSecretKey)
+# print(result)
+
+# b'{"access_token":"24.8263e1ea1626e1343ee995e71dad0288.2592000.1504230788.282335-9958853","session_key":"9mzdA5gmmov7X2D6FSHYCiSZvw9zVmhN7exVs+HUWrsKJnRMDl0HCuO3J2xv3bKDaRFc3jbGOppQKeyMxcd7Cd5AKxNv","scope":"public vis-faceverify_faceverify vis-faceattribute_faceattribute vis-faceverify_faceverify_v2 brain_all_scope wise_adapt lebo_resource_base lightservice_public hetu_basic lightcms_map_poi kaidian_kaidian wangrantest_test wangrantest_test1 bnstest_test1 bnstest_test2 vis-classify_flower","refresh_token":"25.1c2618eceeb270b6dd2bc940f6a86bab.315360000.1816998788.282335-9958853","session_secret":"00c3d619d02c3ba5fe822e6c1925560e","expires_in":2592000}\n'
+baiduAccessToken = '24.4f4834808c48b1a20a26c3f310c484ab.2592000.1504243948.282335-9958853'
+filename = 'my.jpg'
+f = open(filename, 'rb')
+data = f.read()
+print(data)
+base64edData = base64.b64encode(data)
+print(base64edData)
+# d = 'http://www.baidu.com'
+
+urlencodedBase64edData = urllib.parse.quote(base64edData)
+# print(urlencodedBase64edData.encode())
+
+im = Image.open(f)
+
+# for l in f:
+#     # print(l)
+#     data = data + l
+# print(str(data,'utf-8'))
+# postAIPDectect(urlencodedBase64edData.encode(), baiduAccessToken)
+#b'{"result_num":1,"result":[{"location":{"left":38,"top":60,"width":49,"height":60},"face_probability":1,"rotation_angle":-90,"yaw":0.85308390855789,"pitch":-2.8843429088593,"roll":-90.899024963379}],"log_id":1141490129}'
+location = {"left":38,"top":60,"width":49,"height":60}
+# box = (location['left'], location['top'], location['left'] + location['width'], location['top'] + location['height'])
+# box = (location['top'], location['left'], location['top'] + location['height'], location['left'] + location['width'] )
+box = (location['top'], location['left'], location['left'] + location['width'], location['top'] + location['height'] )
+
+im90 = im.rotate(-90, expand=True)
+
+# newBox = (location['top'], location['left'], box[2], box[3])
+
+size = im90.size
+print(size)
+
+newLocation = {
+    'top': location['left'],
+    'left': size[0] - location['top'],
+    'width': location['width'],
+    'height': location['height']
+}
+
+# box = (newLocation['top'], newLocation['left'], newLocation['left'] + newLocation['width'], newLocation['top'] + newLocation['height'] )
+box = (newLocation['left'],newLocation['top'], newLocation['left'] + newLocation['width'], newLocation['top'] + newLocation['height'] )
+
+print(box)
+im90 = im90.crop(box)
+im90.save('updated.jpg', 'JPEG')
+# newIm = im.rotate(-90, expand=True).save('updated.jpg', 'JPEG')
+# newIm = Image.open(open('updated.jpg', 'rb'))
+# newIm.crop(box)
+# print(newIm.size)
+# newIm.save('updated.jpg', 'JPEG')
