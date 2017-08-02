@@ -9,7 +9,8 @@ import json
 import hashlib
 import ssl
 import base64
-from PIL import Image
+from PIL import Image, ImageEnhance, ImageFilter
+
 
 def sendRequest2(url, headers, body):
     req = urllib.request.Request(url)
@@ -77,8 +78,6 @@ def getSign(noncestr, ticket, timestamp, url):
     return result.hexdigest()
 
 
-
-
 chars = ["a", "b", "c", "d", "e", "f", "g", "h",
          "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t",
          "u", "v", "w", "x", "y", "z", "0", "1", "2", "3", "4", "5",
@@ -119,7 +118,6 @@ def sendRequest(url, headers, body):
         return (None, e.reason, None)
 
 
-
 def getIpInfo(ip):
     url = "http://ip.taobao.com/service/getIpInfo.php?ip=%s" % ip
     headers = {}
@@ -144,7 +142,8 @@ def getIpLocation(ip):
     else:
         return 'N/A'
 
-print(getIpLocation('114.61.230.73'))
+
+# print(getIpLocation('114.61.230.73'))
 
 
 
@@ -163,6 +162,7 @@ def getBaiduAPIToken(apiKey, secretKey):
     print(result)
     return result
 
+
 def postAIPDectect(imgData, accessToken):
     url = "https://aip.baidubce.com/rest/2.0/face/v1/detect?access_token=%(accessToken)s" % {
         'accessToken': accessToken
@@ -178,6 +178,7 @@ def postAIPDectect(imgData, accessToken):
     print(result)
     return result
 
+
 baiduApiKey = 'MtxmcKOG44KGoxngiFHneaTz'
 baiduSecretKey = '9vk2KnoLOchxqVOavFsgOqtY8G2OGaGZ'
 
@@ -186,7 +187,7 @@ baiduSecretKey = '9vk2KnoLOchxqVOavFsgOqtY8G2OGaGZ'
 
 # b'{"access_token":"24.8263e1ea1626e1343ee995e71dad0288.2592000.1504230788.282335-9958853","session_key":"9mzdA5gmmov7X2D6FSHYCiSZvw9zVmhN7exVs+HUWrsKJnRMDl0HCuO3J2xv3bKDaRFc3jbGOppQKeyMxcd7Cd5AKxNv","scope":"public vis-faceverify_faceverify vis-faceattribute_faceattribute vis-faceverify_faceverify_v2 brain_all_scope wise_adapt lebo_resource_base lightservice_public hetu_basic lightcms_map_poi kaidian_kaidian wangrantest_test wangrantest_test1 bnstest_test1 bnstest_test2 vis-classify_flower","refresh_token":"25.1c2618eceeb270b6dd2bc940f6a86bab.315360000.1816998788.282335-9958853","session_secret":"00c3d619d02c3ba5fe822e6c1925560e","expires_in":2592000}\n'
 baiduAccessToken = '24.4f4834808c48b1a20a26c3f310c484ab.2592000.1504243948.282335-9958853'
-filename = 'my.jpg'
+filename = 'girl.jpg'
 f = open(filename, 'rb')
 data = f.read()
 print(data)
@@ -204,34 +205,51 @@ im = Image.open(f)
 #     data = data + l
 # print(str(data,'utf-8'))
 # postAIPDectect(urlencodedBase64edData.encode(), baiduAccessToken)
-#b'{"result_num":1,"result":[{"location":{"left":38,"top":60,"width":49,"height":60},"face_probability":1,"rotation_angle":-90,"yaw":0.85308390855789,"pitch":-2.8843429088593,"roll":-90.899024963379}],"log_id":1141490129}'
-location = {"left":38,"top":60,"width":49,"height":60}
+# b'{"result_num":1,"result":[{"location":{"left":38,"top":60,"width":49,"height":60},"face_probability":1,"rotation_angle":-90,"yaw":0.85308390855789,"pitch":-2.8843429088593,"roll":-90.899024963379}],"log_id":1141490129}'
+location = {"left": 45, "top": 56, "width": 59, "height": 57}
 # box = (location['left'], location['top'], location['left'] + location['width'], location['top'] + location['height'])
-# box = (location['top'], location['left'], location['top'] + location['height'], location['left'] + location['width'] )
-box = (location['top'], location['left'], location['left'] + location['width'], location['top'] + location['height'] )
+box = (location['left'], location['top'], location['top'] + location['height'], location['left'] + location['width'])
+# box = (location['top'], location['left'], location['left'] + location['width'], location['top'] + location['height'] )
+im = im.crop(box)
+im = ImageEnhance.Contrast(im).enhance(3)
+# im.filter(ImageFilter.GaussianBlur)
+im = im.filter(ImageFilter.MedianFilter)
+r, g, b = im.split()
+r = r.point(lambda i: 1 if i > 100 else 255)
+g = g.point(lambda i: 1 if i > 100 else 255)
+b = b.point(lambda i: 1 if i > 100 else 255)
 
-im90 = im.rotate(-90, expand=True)
+def adjust(i):
+    print(i)
+    return i * 0.8 if i < 100 else i * 1.7
+# im = im.point(adjust)
+# im = Image.merge(im.mode, (r, g, b))
+# im.convert('1',colors=1)
+im.save('updated.jpg', 'JPEG')
 
-# newBox = (location['top'], location['left'], box[2], box[3])
-
-size = im90.size
-print(size)
-
-newLocation = {
-    'top': location['left'],
-    'left': size[0] - location['top'],
-    'width': location['width'],
-    'height': location['height']
-}
-
-# box = (newLocation['top'], newLocation['left'], newLocation['left'] + newLocation['width'], newLocation['top'] + newLocation['height'] )
-box = (newLocation['left'],newLocation['top'], newLocation['left'] + newLocation['width'], newLocation['top'] + newLocation['height'] )
-
-print(box)
-im90 = im90.crop(box)
-im90.save('updated.jpg', 'JPEG')
-# newIm = im.rotate(-90, expand=True).save('updated.jpg', 'JPEG')
-# newIm = Image.open(open('updated.jpg', 'rb'))
-# newIm.crop(box)
-# print(newIm.size)
-# newIm.save('updated.jpg', 'JPEG')
+#
+# im90 = im.rotate(-90, expand=True)
+#
+# # newBox = (location['top'], location['left'], box[2], box[3])
+#
+# size = im90.size
+# print(size)
+#
+# newLocation = {
+#     'top': location['left'],
+#     'left': size[0] - location['top'],
+#     'width': location['width'],
+#     'height': location['height']
+# }
+#
+# # box = (newLocation['top'], newLocation['left'], newLocation['left'] + newLocation['width'], newLocation['top'] + newLocation['height'] )
+# box = (newLocation['left'],newLocation['top'], newLocation['left'] + newLocation['width'], newLocation['top'] + newLocation['height'] )
+#
+# print(box)
+# im90 = im90.crop(box)
+# im90.save('updated.jpg', 'JPEG')
+# # newIm = im.rotate(-90, expand=True).save('updated.jpg', 'JPEG')
+# # newIm = Image.open(open('updated.jpg', 'rb'))
+# # newIm.crop(box)
+# # print(newIm.size)
+# # newIm.save('updated.jpg', 'JPEG')
