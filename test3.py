@@ -176,7 +176,9 @@ def postAIPDectect(imgData, accessToken):
     print(code)
     print(reason)
     print(result)
-    return result
+    if code == 200:
+        return json.loads(result.decode('utf-8'))
+    return {}
 
 
 baiduApiKey = 'MtxmcKOG44KGoxngiFHneaTz'
@@ -187,45 +189,63 @@ baiduSecretKey = '9vk2KnoLOchxqVOavFsgOqtY8G2OGaGZ'
 
 # b'{"access_token":"24.8263e1ea1626e1343ee995e71dad0288.2592000.1504230788.282335-9958853","session_key":"9mzdA5gmmov7X2D6FSHYCiSZvw9zVmhN7exVs+HUWrsKJnRMDl0HCuO3J2xv3bKDaRFc3jbGOppQKeyMxcd7Cd5AKxNv","scope":"public vis-faceverify_faceverify vis-faceattribute_faceattribute vis-faceverify_faceverify_v2 brain_all_scope wise_adapt lebo_resource_base lightservice_public hetu_basic lightcms_map_poi kaidian_kaidian wangrantest_test wangrantest_test1 bnstest_test1 bnstest_test2 vis-classify_flower","refresh_token":"25.1c2618eceeb270b6dd2bc940f6a86bab.315360000.1816998788.282335-9958853","session_secret":"00c3d619d02c3ba5fe822e6c1925560e","expires_in":2592000}\n'
 baiduAccessToken = '24.4f4834808c48b1a20a26c3f310c484ab.2592000.1504243948.282335-9958853'
-filename = 'girl.jpg'
+filename = 'mirei.jpg'
 f = open(filename, 'rb')
-data = f.read()
-print(data)
-base64edData = base64.b64encode(data)
-print(base64edData)
-# d = 'http://www.baidu.com'
-
-urlencodedBase64edData = urllib.parse.quote(base64edData)
-# print(urlencodedBase64edData.encode())
-
 im = Image.open(f)
-
+faceIm = Image.open('face.jpg')
+im.thumbnail((400, 400))
+im.save('updated.jpg', 'JPEG')
+f = open('updated.jpg', 'rb')
+data = f.read()
+base64edData = base64.b64encode(data)
+urlencodedBase64edData = urllib.parse.quote(base64edData)
 # for l in f:
 #     # print(l)
 #     data = data + l
 # print(str(data,'utf-8'))
-# postAIPDectect(urlencodedBase64edData.encode(), baiduAccessToken)
-# b'{"result_num":1,"result":[{"location":{"left":38,"top":60,"width":49,"height":60},"face_probability":1,"rotation_angle":-90,"yaw":0.85308390855789,"pitch":-2.8843429088593,"roll":-90.899024963379}],"log_id":1141490129}'
-location = {"left": 45, "top": 56, "width": 59, "height": 57}
-# box = (location['left'], location['top'], location['left'] + location['width'], location['top'] + location['height'])
-box = (location['left'], location['top'], location['top'] + location['height'], location['left'] + location['width'])
-# box = (location['top'], location['left'], location['left'] + location['width'], location['top'] + location['height'] )
-im = im.crop(box)
-im = ImageEnhance.Contrast(im).enhance(3)
-# im.filter(ImageFilter.GaussianBlur)
-im = im.filter(ImageFilter.MedianFilter)
-r, g, b = im.split()
-r = r.point(lambda i: 1 if i > 100 else 255)
-g = g.point(lambda i: 1 if i > 100 else 255)
-b = b.point(lambda i: 1 if i > 100 else 255)
+result = postAIPDectect(urlencodedBase64edData.encode(), baiduAccessToken)
+# location = result['result'][0]['location']
+# rotationAngle = result['result'][0]['rotation_angle']
+location = {"left": 94, "top": 96, "width": 95, "height": 87}
+# rotationAngle = -5
 
-def adjust(i):
-    print(i)
-    return i * 0.8 if i < 100 else i * 1.7
-# im = im.point(adjust)
-# im = Image.merge(im.mode, (r, g, b))
-# im.convert('1',colors=1)
-im.save('updated.jpg', 'JPEG')
+# if rotationAngle:
+#     im = im.rotate(rotationAngle, expand=True)
+#     size = im.size
+#     location = {
+#         'top': location['left'],
+#         'left': size[0] - location['top'],
+#         'width': location['width'],
+#         'height': location['height']
+#     }
+box = (location['left'], location['top'], location['left'] + location['width'],
+       location['top'] + location['height'])
+im = im.crop(box)
+im = ImageEnhance.Contrast(im).enhance(2)
+im = im.convert('L')
+im = im.filter(ImageFilter.CONTOUR)
+
+p = (101, 82)
+s = im.size
+loc = (p[0], p[1], p[0] + s[0], p[1] + s[1])
+faceIm.paste(im, loc)
+# print(faceIm.size)
+faceIm.show()
+# im.show()
+# # im.filter(ImageFilter.GaussianBlur)
+# im = im.filter(ImageFilter.MedianFilter)
+# r, g, b = im.split()
+# r = r.point(lambda i: 1 if i > 100 else 255)
+# g = g.point(lambda i: 1 if i > 100 else 255)
+# b = b.point(lambda i: 1 if i > 100 else 255)
+#
+# def adjust(i):
+#     print(i)
+#     return i * 0.8 if i < 100 else i * 1.7
+# # im = im.point(adjust)
+# # im = Image.merge(im.mode, (r, g, b))
+# # im.convert('1',colors=1)
+# im.save('updated.jpg', 'JPEG')
 
 #
 # im90 = im.rotate(-90, expand=True)
