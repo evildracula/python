@@ -104,7 +104,7 @@ def text_watermark(img, text, out_file="test4.jpg", angle=23, opacity=0.50):
 
 
 # 等比例压缩图片
-def resizeImg(img, dst_w=0, dst_h=0, qua=85):
+def resizeImg(im, dst_w=0, dst_h=0, qua=85):
     '''''
     只给了宽或者高，或者两个都给了，然后取比例合适的
     如果图片比给要压缩的尺寸都要小，就不压缩了
@@ -262,6 +262,16 @@ def resizeImg(im, dst_w=0, dst_h=0, qua=85):
     return im
 
 
+def detectFace(imgFile):
+    f = open(imgFile, 'rb')
+    targetBinData = f.read()
+    base64edData = base64.b64encode(targetBinData)
+    urlencodedBase64edData = urllib.parse.quote(base64edData)
+    result = postAIPDectect(urlencodedBase64edData.encode(), baiduAccessToken)
+    print('detect face result :%s' % result)
+    return result
+
+
 def changeFace(inputfile, backgroundfile, point, size):
     # Get face
     f = open(inputfile, 'rb')
@@ -303,11 +313,16 @@ def changeFace(inputfile, backgroundfile, point, size):
 
 
 baiduAccessToken = '24.4f4834808c48b1a20a26c3f310c484ab.2592000.1504243948.282335-9958853'
-inputfile = 'man4.jpg'
+
+
+inputfile = 'man5.jpg'
 backgroundfile = 'bg2.png'
 p = (116, 152)
 s = (176, 169)
 changeFace(inputfile, backgroundfile, p, s)
+# detectFace('girl4.jpg')
+
+# girl4.jpg {'location': {'left': 541, 'top': 282, 'width': 289, 'height': 259} 'rotation_angle': 39
 
 # f = open(inputfile, 'rb')
 # img = Image.open(f)
@@ -318,3 +333,45 @@ changeFace(inputfile, backgroundfile, p, s)
 # img2 = Image.open(imgBin)
 # img2.show()
 # print(imgBin.getvalue())
+
+def getangle(degree):
+    result = math.pi * degree / 180
+    return result
+
+#
+# f = open('man5.jpg', 'rb')
+# targetBinData = f.read()
+# base64edData = base64.b64encode(targetBinData)
+# urlencodedBase64edData = urllib.parse.quote(base64edData)
+# result = postAIPDectect(urlencodedBase64edData.encode(), baiduAccessToken)
+# location = result['result'][0]['location']
+# rotationAngle = result['result'][0]['rotation_angle']
+# # location = {"left":876,"top":1261,"width":641,"height":711}
+# # rotationAngle = -88
+# x, y, w, h = location['left'], location['top'], location['width'], location['height']
+# print('%d %d %d %d' % (x, y, w, h))
+# if rotationAngle < 0:
+#     newX = math.fabs(math.sin(getangle(rotationAngle))) * h
+#     newW = h / math.fabs(math.cos(getangle(90 - rotationAngle)))
+#     newH = h - math.sin(getangle(90 - rotationAngle)) * h * 2
+#     newY = y - newH
+# else:
+#     newX = x - math.sin(getangle(rotationAngle)) * h
+#     newY = y
+#     newW = h / math.cos(getangle(90 - rotationAngle))
+#     newH = math.sin(getangle(90-rotationAngle)) * h * 2
+# print('box %d %d %d %d' % (newX, newY, newW, newH))
+# box = (newX, newY, newX+newW, newY+newH)
+# print('cutbox %d %d %d %d' % box)
+# originImg = Image.open(f)
+# print('size %d %d' % originImg.size)
+# # originImg.show()
+# # originImg.crop((454,282, 454+100, 282+100)).show()
+# cuttedImg = originImg.crop(box)
+# cuttedImg.save('me2-cutted.jpg','JPEG')
+# rotatedImg = cuttedImg.rotate(rotationAngle)
+# rotatedImg.save('me2-rotated.jpg','JPEG')
+#
+# yy = math.sin(getangle(90-rotationAngle)) * math.sin(getangle(90-rotationAngle)) * h
+# xx = math.sin(getangle(90-rotationAngle)) * (h / math.cos(getangle(90 - rotationAngle)) / 2)
+# print('%d %d' % (xx, yy))
