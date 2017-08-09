@@ -315,11 +315,11 @@ def changeFace(inputfile, backgroundfile, point, size):
 baiduAccessToken = '24.4f4834808c48b1a20a26c3f310c484ab.2592000.1504243948.282335-9958853'
 
 
-inputfile = 'man5.jpg'
-backgroundfile = 'bg2.png'
-p = (116, 152)
-s = (176, 169)
-changeFace(inputfile, backgroundfile, p, s)
+# inputfile = 'man5.jpg'
+# backgroundfile = 'bg2.png'
+# p = (116, 152)
+# s = (176, 169)
+# changeFace(inputfile, backgroundfile, p, s)
 # detectFace('girl4.jpg')
 
 # girl4.jpg {'location': {'left': 541, 'top': 282, 'width': 289, 'height': 259} 'rotation_angle': 39
