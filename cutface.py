@@ -104,7 +104,7 @@ def imgTest():
         [0.9, 0.1]
     ]
 
-    # result = [[0.99, 0.01], [0.01, 0.99]]
+    result = [[0.99, 0.01], [0.01, 0.99]]
     r = len(result)
     train_data = [(getthumbnailpic(x, imgsize), result[x]) for x in range(r)]
     print(train_data)
@@ -122,7 +122,7 @@ def imgTest():
     length = imgsize[0] * imgsize[1]
     m = ann.Machine(length, 2, 4)
     m.initializeMax()
-    m.train(train_data, step=0.1, time=5)
+    m.train(train_data, step=0.1, time=1)
     # print('max1 %s ' % (m.max1,))
     # print('max2 %s ' % (m.max2,))
     for i in range(10):
@@ -169,8 +169,8 @@ def imgTest2():
     print(m.get(target))
 
 
-# imgTest()
-test()
+imgTest()
+# test()
 # print(readimgs())
 # imgTest()
 # test()
