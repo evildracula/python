@@ -2,7 +2,7 @@ from PIL import Image, ImageEnhance, ImageFilter, ImageDraw, ImageFont
 import ann
 import numpy as np
 
-fn = 'tim.jpg'
+fn = 'tim-n2.jpg'
 img = Image.open(open(fn, 'rb'))
 
 margin = (54, 54)
@@ -44,72 +44,101 @@ def getthumbnailpic(num, imgsize=(8, 8)):
 
 def test():
     # sample = [
-    #     ([1, 1, 1, 1], [1]),
-    #     # ([0.9, 0.9, 0.9, 0.9], [0.9]),
-    #     # # ([0, 1, 1, 1], [0.85]),
-    #     # ([0, 1, 1, 1], [0.8]),
-    #     # ([0, 0, 1, 1], [0.5]),
-    #     # ([0, 0, 0, 1], [0.2]),
+    #     # ([1, 1, 1, 1], [1]),
+    #     ([0.9, 0.9, 0.9, 0.9], [0.9]),
+    #     # ([0, 1, 1, 1], [0.85]),
+    #     ([0, 0.9, 0.9, 0.9], [0.8]),
+    #     ([0, 0, 0.9, 0.9], [0.5]),
+    #     ([0, 0, 0, 0.9], [0.2]),
     #     ([0, 0, 0, 0], [0])
     # ]
-    sample = [([1, 1, 1, 0, 1, 1, 0, 0, 1], [1]), ([0, 0, 1, 0, 1, 0, 1, 0, 0], [0])]
-
-    # m = ann.Machine(4,1,3)
-    # m.train(sample)
-    # print(m.get([0,1,1,1]))
-    # print(m.get([0,1,1,1]))
-
-    m = ann.Machine(9, 1, 6)
+    # sample = [([1, 1, 1, 0, 1, 1, 0, 0, 1], [1]), ([0, 0, 1, 0, 1, 0, 1, 0, 0], [0])]
+    sample = [
+        ([1, 1, 1, 1], [1]),
+        ([0, 1, 1, 1], [0.9]),
+        ([0, 0, 1, 1], [0.5]),
+        ([0, 0, 0, 1], [0.1]),
+        ([0, 0, 0, 0], [0])
+    ]
+    m = ann.Machine(4,1,3,step=0.02)
     m.initializeMax()
-    for i in range(1, 3):
-        print('start')
-        m.max1 = m.initMax1
-        m.max2 = m.initMax2
-        m.train(sample, 5 * i)
-        print(m.get([1] * 9))
-        print(m.get([0, 0, 0, 1, 1, 0, 0, 0, 1]))
-        print(m.get([0, 0, 0, 0, 0, 0, 0, 0, 1]))
-        print('end')
+    m.train(sample, time=100)
+    print(m.get([1, 1, 1, 1]))
+    print(m.get([0, 1, 1, 1]))
+    print(m.get([1, 0, 1, 0]))
+    print(m.get([0, 0, 0, 0]))
+    # print(m.get([1,1,1,1]))
+
+    # m = ann.Machine(9, 1, 6)
+    # m.initializeMax()
+    # for i in range(1, 3):
+    #     print('start')
+    #     m.max1 = m.initMax1
+    #     m.max2 = m.initMax2
+    #     m.train(sample, 5 * i)
+    #     print(m.get([1] * 9))
+    #     print(m.get([0, 0, 0, 1, 1, 0, 0, 0, 1]))
+    #     print(m.get([0, 0, 0, 0, 0, 0, 0, 0, 1]))
+    #     print('end')
 
 
 def imgTest():
-    imgsize = (16, 16)
+    imgsize = (8, 8)
     # result = [0.9, 0.1, 0.9, 0.1, 0.9, 0.1, 0.1, 0.1, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.1, 0.1, 0.9, 0.1, 0.9, 0.9,
     #           0.1, 0.1, 0.1, 0.9]
+    # result = [
+    #     [0.9, 0.1],
+    #     [0.1, 0.9],
+    #     [0.9, 0.1],
+    #     [0.1, 0.9],
+    #     [0.9, 0.1],
+    #     [0.1, 0.9],
+    #     [0.1, 0.9],
+    #     [0.1, 0.9],
+    #     [0.9, 0.1],
+    #     [0.9, 0.1],
+    #     [0.9, 0.1],
+    #     [0.9, 0.1],
+    #     [0.9, 0.1],
+    #     [0.9, 0.1],
+    #     [0.9, 0.1]
+    #     # [0.1, 0.9],
+    #     # [0.1, 0.9],
+    #     # [0.9, 0.1],
+    #     # [0.1, 0.9],
+    #     # [0.9, 0.1],
+    #     # [0.9, 0.1],
+    #     # [0.1, 0.9],
+    #     # [0.1, 0.9],
+    #     # [0.1, 0.9],
+    #     # [0.9, 0.1]
+    # ]
+
+    # result = [[0.99, 0.01], [0.01, 0.99]]
+
     result = [
-        [0.9, 0.1],
-        [0.1, 0.9],
-        [0.9, 0.1],
-        [0.1, 0.9],
-        [0.9, 0.1],
-        [0.1, 0.9],
-        [0.1, 0.9],
-        [0.1, 0.9],
-        [0.9, 0.1],
-        [0.9, 0.1],
-        [0.9, 0.1],
-        [0.9, 0.1],
-        [0.9, 0.1],
-        [0.9, 0.1],
-        [0.9, 0.1],
-        [0.1, 0.9],
-        [0.1, 0.9],
-        [0.9, 0.1],
-        [0.1, 0.9],
-        [0.9, 0.1],
-        [0.9, 0.1],
-        [0.1, 0.9],
-        [0.1, 0.9],
-        [0.1, 0.9],
-        [0.9, 0.1]
+        [1, 0, 0]
+        ,
+        [0, 0, 1]
+        ,
+        [1, 0, 0],
+        [0, 0, 1],
+        [0, 1, 0],
+        [0, 0, 1],
+        [0, 0, 1],
+        [0, 0, 1],
+        [1, 0, 0],
+        [1, 0, 0]
     ]
 
-    result = [[0.99, 0.01], [0.01, 0.99]]
     r = len(result)
     train_data = [(getthumbnailpic(x, imgsize), result[x]) for x in range(r)]
-    print(train_data)
+    # print(train_data)
     # train_data = [
-    #     (getthumbnailpic(0,imgsize), [1]),
+    #     (getthumbnailpic(0,imgsize), [1,0,0]),
+    #     (getthumbnailpic(1, imgsize), [0, 0, 1]),
+    #     (getthumbnailpic(2, imgsize), [0, 0, 1]),
+    #     (getthumbnailpic(24, imgsize), [0, 1, 0]),
     #     (getthumbnailpic(1,imgsize), [-1]),
     #     (getthumbnailpic(2, imgsize), [1]),
     #     (getthumbnailpic(3, imgsize), [-1]),
@@ -120,15 +149,22 @@ def imgTest():
     #     (getthumbnailpic(4, imgsize), [-1]),
     # ]
     length = imgsize[0] * imgsize[1]
-    m = ann.Machine(length, 2, 4)
+    m = ann.Machine(length, 3, 2)
+    # m.showlog = True
     m.initializeMax()
     m.train(train_data, step=0.1, time=1)
+    for i in range(25):
+     print('%d %s' % (i, m.get(getthumbnailpic(i, imgsize)),))
+    # print('10 %s' % (m.get(getthumbnailpic(1, imgsize)),))
+    # print('21 %s' % (m.get(getthumbnailpic(21, imgsize)),))
+    # print('22 %s' % (m.get(getthumbnailpic(22, imgsize)),))
+    # print('24 %s' % (m.get(getthumbnailpic(24, imgsize)),))
     # print('max1 %s ' % (m.max1,))
     # print('max2 %s ' % (m.max2,))
-    for i in range(10):
-        s = getthumbnailpic(i, imgsize)
-    # print(s)
-        print('%d: %s' % (i, m.get(s),))
+    # for i in range(2):
+    #     s = getthumbnailpic(i, imgsize)
+    # # print(s)
+    #     print('%d: %s' % (i, m.get(s),))
 
 
 
@@ -169,8 +205,8 @@ def imgTest2():
     print(m.get(target))
 
 
-imgTest()
-# test()
+# imgTest()
+test()
 # print(readimgs())
 # imgTest()
 # test()

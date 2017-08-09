@@ -91,7 +91,9 @@ downImg = origin.crop(downbox)
 
 txtSize = (originsize[0], 100)
 txtImg = Image.new('RGBA', txtSize,(255,255,255))
-txtImg = drawTextOnImg(u'这里都是动态评上去的不要问我怎么做的', txtImg, 20, '#000000')
+txtColor = '#333'
+lnkColor = '#507daf'
+txtImg = drawTextOnImg(u'这里都是动态评上去的不要问我怎么做的', txtImg, 24, lnkColor)
 # txtImg.show()
 resultImg = Image.new('RGBA', (originsize[0], originsize[1]+txtSize[1]))
 resultImg.paste(upImg, upbox)
