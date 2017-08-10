@@ -81,84 +81,110 @@ def drawTextOnImgold(text, img, fontSize, margin=(0, 0, 0, 0), fontColor='#333',
     return img
 
 
-def getTextImage(text, fontSize, max_width, padding=(0, 0, 0, 0), fontColor='#333', linkColor='#507daf'):
-    font = ImageFont.truetype("./msyh.ttc", fontSize)
-    textSize = font.getsize(text)
-    possibleLines = math.ceil(textSize[0] / max_width)
-    print('possibleLine %d' % possibleLines)
-    possibleContainerSize = (max_width + padding[0] + padding[2], possibleLines * textSize[1] + padding[1] + padding[3])
-    txtImg = Image.new('RGBA', possibleContainerSize, (255, 255, 255))
-    dr = ImageDraw.Draw(txtImg)
-    tmpText = ''
-    charIdx = 0
-    lineIdx = 0
-    for charIdx in range(len(text)):
-        # print(text[charIdx])
-        tmpText += text[charIdx]
-        tmpTextSize = font.getsize(tmpText)
-        if tmpTextSize[0] > max_width or charIdx == len(text) - 1:
-            print('tmpTextSize width %d' % tmpTextSize[0])
-            print(tmpText)
-            dr.text((padding[0], 0 + lineIdx * textSize[1]), tmpText, font=font, fill=fontColor)
-            tmpText = ''
-            lineIdx += 1
-    return txtImg
-
-
-# bgImg - Image object
-# replaceArea - box (left, top, width, height)
-# text - text string
-# def addText(bgImg, replaceArea, text):
-#     txtImg = getTextImage(text, 24, 640, (30,10,10,10))
-#     s = txtImg.size
-#     box = (replaceArea[0], replaceArea[1], replaceArea[0] + s[0], replaceArea[1] + s[1])
-#     bgImg.paste(txtImg, box)
-#
-#     return bgImg
-
-
-# bgImg - Image object
-# replaceArea - box (left, top, width, height)
-# targetImg - Image object
-def addPic(bgImg, replaceArea, targetImg):
-    return bgImg
-
-
 # text = u"Test how long this text is 包含中文"
 # txtImg = getTextImage(text, 24, 200, (10,10,10,10))
 # txtImg.show()
-
-def splitImage(img, top, height):
+def splitImage(img, top, bottom):
     originsize = img.size
     p1 = (0, top)
-    p2 = (0, top + height)
+    p2 = (0, bottom)
     upbox = (0, 0, originsize[0], p1[1])
     upImg = img.crop(upbox)
-    downbox = (0, top + height, originsize[0], originsize[1])
+    downbox = (0, bottom, originsize[0], originsize[1])
     downImg = img.crop(downbox)
     return (upbox, upImg, downbox, downImg)
 
 
-def addTextToImg(bgImg, top, height, text):
+# def getTextImage(text, fontSize, max_width, padding=(0, 0, 0, 0), fontColor='#333', linkColor='#507daf'):
+#     font = ImageFont.truetype("msyh.ttc", fontSize)
+#     textSize = font.getsize(text)
+#     possibleLines = math.ceil(textSize[0] / max_width)
+#     print('possibleLine %d' % possibleLines)
+#     possibleContainerSize = (max_width + padding[0] + padding[2]+ int(fontSize/2), possibleLines * textSize[1] + padding[1] + padding[3])
+#     txtImg = Image.new('RGBA', possibleContainerSize, (255, 255, 255))
+#     dr = ImageDraw.Draw(txtImg)
+#     tmpText = ''
+#     charIdx = 0
+#     lineIdx = 0
+#     for charIdx in range(len(text)):
+#         # print(text[charIdx])
+#         tmpText += text[charIdx]
+#         tmpTextSize = font.getsize(tmpText)
+#         if tmpTextSize[0] > max_width or charIdx == len(text) - 1:
+#             print('tmpTextSize width %d' % tmpTextSize[0])
+#             print(tmpText)
+#             dr.text((padding[0], 0 + lineIdx * textSize[1]), tmpText, font=font, fill=fontColor)
+#             tmpText = ''
+#             lineIdx += 1
+#     return txtImg
+
+def drawLine(dr, point, text, font):
+    # dr.text(point, text, font=font, fill=color)
+    p = point[0]
+    link = False
+    for i in text:
+        w = font.getsize(i)[0]
+        print(w)
+        if i == '@':
+            link = True
+        if link and i in [',', ' ']:
+            link = False
+        if link:
+            color = '#507daf'
+        else:
+            color = '#333'
+        dr.text((p, point[1]), i, font=font, fill=color)
+        p += w
+
+
+def getTextImage(text, fontSize, max_width, padding=(0, 0, 0, 0)):
+    font = ImageFont.truetype("msyh.ttc", fontSize)
+    textSize = font.getsize(text)
+    textLines = []
+    tmpText = ''
+    for charIdx in range(len(text)):
+        tmpText += text[charIdx]
+        tmpTextSize = font.getsize(tmpText)
+        if tmpTextSize[0] > max_width:
+            print(tmpText)
+            textLines.append(tmpText)
+            tmpText = ''
+    if tmpText:
+        textLines.append(tmpText)
+    print(textLines)
+    print('possibleLine %d' % len(textLines))
+    possibleContainerSize = (
+        max_width + padding[0] + padding[2] + int(fontSize / 2), len(textLines) * textSize[1] + padding[1] + padding[3])
+    txtImg = Image.new('RGBA', possibleContainerSize, (255, 255, 255))
+    dr = ImageDraw.Draw(txtImg)
+    for line in range(len(textLines)):
+        print(textLines[line])
+        point = (padding[0], 0 + line * textSize[1])
+        drawLine(dr, point, textLines[line], font)
+    return txtImg
+
+
+def addTextToImg(bgImg, top, bottom, text):
     picSize = (345, 345)
     maxTextWidth = 640
     fontSize = 24
     textPadding = (30, 10, 10, 10)
     picLeftPadding = 35
     s = bgImg.size
-    upbox, upImg, downbox, downImg = splitImage(bgImg, top, height)
+    upbox, upImg, downbox, downImg = splitImage(bgImg, top, bottom)
     txtImg = getTextImage(text, fontSize, maxTextWidth, textPadding)
     resultImg = Image.new('RGBA', s, (255, 255, 255))
     resultImg.paste(upImg, upbox)
     resultImg.paste(txtImg, (0, top, txtImg.size[0], top + txtImg.size[1]))
     picImg = Image.new('RGBA', picSize, (111, 111, 111))
-    resultImg.paste(picImg, (picLeftPadding, top + txtImg.size[1] + 10, picLeftPadding + picSize[0], top + txtImg.size[1] + 10 + picSize[1]))
+    resultImg.paste(picImg, (
+        picLeftPadding, top + txtImg.size[1] + 10, picLeftPadding + picSize[0], top + txtImg.size[1] + 10 + picSize[1]))
     resultImg.paste(downImg, (0, s[1] - downImg.size[1], downImg.size[0], s[1]))
     return resultImg
 
 
-bgImg = Image.open(open('weibobg.png', 'rb'))
-bgImg = addTextToImg(bgImg, 670, 490, u'测试 @随便谁 啊哈哈')
+bgImg = Image.open(open(u'./psd/刘诗诗.png', 'rb'))
+bgImg = addTextToImg(bgImg, 670, 1155, u'无尽的阳光 无限的蔚蓝 时光静止在Capri海岛上  心情停留在明媚风景中   这才是假期的正确打开方式  我和@abd 去看海啦')
 # bgImg = addTextToImg(bgImg, 670, 490,
 #                      'so')
 bgImg.show()
