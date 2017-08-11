@@ -61,7 +61,7 @@ def test():
         ([0, 0, 0, 0], [0])
     ]
     m = ann.Machine(4,1,3,step=0.1)
-    # m.showlog = True
+    m.showlog = True
     m.initializeMax()
     m.train(sample, time=10)
     print(m.get([1, 1, 1, 1]))

@@ -64,7 +64,7 @@ class Machine(object):
         hiddenresult = np.dot(inputsample, self.max1)
         if self.showlog:
             print('hiddenresult %s' % (hiddenresult,))
-        hiddenresult = np.tanh(hiddenresult)
+        # hiddenresult = np.tanh(hiddenresult)
         if self.showlog:
             print('tanh hiddenresult %s' % (hiddenresult,))
             print('max2 %s' % (self.max2,))
@@ -72,7 +72,7 @@ class Machine(object):
         if self.showlog:
             print('result %s' % (result,))
         # print('result before %s' % (result,))
-        result = np.tanh(result)
+        # result = np.tanh(result)
         if self.showlog:
             print('tanh result %s' % (result,))
         # result = np.tanh(m)
@@ -98,8 +98,10 @@ class Machine(object):
     def backward(self, inputsample, hiddenresult, deltaresult):
         if self.showlog:
             print('backward start')
-        deltahidden = np.array(np.dot(deltaresult, self.max2.T))
-        deltainput = np.array(np.dot(deltahidden, self.max1.T))
+        # deltahidden = np.array(np.dot(deltaresult, self.max2.T))
+        deltahidden = hiddenresult*(1-hiddenresult)*np.array(np.dot(deltaresult, self.max2.T))
+        # deltainput = np.array(np.dot(deltahidden, self.max1.T))
+        deltainput = np.array(inputsample)*(1-np.array(inputsample))*np.array(np.dot(deltahidden, self.max1.T))
         if self.showlog:
             print('inputsample %s' % (inputsample,))
             print('deltahidden %s' % (deltahidden,))
@@ -149,8 +151,8 @@ class Machine(object):
             for i in range(time):
                 (hiddenresult, result) = self.forward(s[0])
                 target = np.array(s[1])
-                # deltaresult = result * (1 - result) * (target - result)
-                deltaresult = -(target - result)
+                deltaresult = result * (1 - result) * (target - result)
+                # deltaresult = -(target - result)
                 print('deltaresult %s' % (deltaresult,))
                 # print('deltaresult %s' % (deltaresult,))
                 deltaresult = np.array(deltaresult)
