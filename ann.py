@@ -19,8 +19,19 @@ class Machine(object):
         self.showlog = False
 
     def initializeMax(self):
-        self.max1 = np.random.uniform(0, 1, size=[self.inputsize, self.hiddensize])
-        self.max2 = np.random.uniform(0, 1, size=[self.hiddensize, self.outputsize])
+        self.max1 = np.array([
+            [0.1, 0.1, 0.1],
+            [0.1, 0.1, 0.1],
+            [0.1, 0.1, 0.1],
+            [0.1, 0.1, 0.1]
+        ])
+        self.max2 = np.array([
+            [0.1],
+            [0.1],
+            [0.1]
+        ])
+        # self.max1 = np.random.uniform(0, 1, size=[self.inputsize, self.hiddensize])
+        # self.max2 = np.random.uniform(0, 1, size=[self.hiddensize, self.outputsize])
         self.initMax1 = self.max1.copy()
         self.initMax2 = self.max2.copy()
         # print('max1 size %s max2 size %s' % (self.max1.shape, self.max2.shape))
@@ -91,6 +102,7 @@ class Machine(object):
         deltainput = np.array(np.dot(deltahidden, self.max1.T))
         if self.showlog:
             print('inputsample %s' % (inputsample,))
+            print('deltahidden %s' % (deltahidden,))
             print('deltainput %s' % (deltainput,))
         # s = self.max1 + self.step*(inputsample * self.max1.T).T
         # s = self.max1 + self.step *(inputsample * deltahidden.T)

@@ -55,18 +55,20 @@ def test():
     # sample = [([1, 1, 1, 0, 1, 1, 0, 0, 1], [1]), ([0, 0, 1, 0, 1, 0, 1, 0, 0], [0])]
     sample = [
         ([1, 1, 1, 1], [1]),
-        ([0, 1, 1, 1], [0.9]),
-        ([0, 0, 1, 1], [0.5]),
-        ([0, 0, 0, 1], [0.1]),
+        ([0, 1, 1, 1], [1]),
+        ([0, 0, 1, 1], [1]),
+        ([0, 0, 0, 1], [0]),
         ([0, 0, 0, 0], [0])
     ]
-    m = ann.Machine(4,1,3,step=0.02)
+    m = ann.Machine(4,1,3,step=0.1)
+    # m.showlog = True
     m.initializeMax()
-    m.train(sample, time=100)
+    m.train(sample, time=10)
     print(m.get([1, 1, 1, 1]))
     print(m.get([0, 1, 1, 1]))
     print(m.get([1, 0, 1, 0]))
     print(m.get([0, 0, 0, 0]))
+
     # print(m.get([1,1,1,1]))
 
     # m = ann.Machine(9, 1, 6)
